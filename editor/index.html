@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Website Editor</title>
+<style>
+  :root { --bg: #f6f3f4; --card: #fff; --ink: #2b2226; --muted: #85767c; --line: #e7dfe2; --accent: #c2185b; --accent-soft: #fbe7ef; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .bar { max-width: 980px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .bar h1 { font-size: 17px; margin: 0 auto 0 0; }
+  #status { font-size: 13px; color: var(--muted); }
+  nav { max-width: 980px; margin: 0 auto; padding: 0 16px 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  nav a { font-size: 13px; color: var(--muted); text-decoration: none; padding: 3px 9px; border: 1px solid var(--line); border-radius: 99px; background: #fff; }
+  nav a:hover { color: var(--accent); border-color: var(--accent); }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; }
+  section.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; scroll-margin-top: 110px; }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .card-head h2 { font-size: 16px; margin: 0 auto 0 0; }
+  .card-head .tag { font-size: 12px; color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 99px; }
+  label.f { display: block; margin-bottom: 10px; }
+  label.f > span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .03em; }
+  label.f small { font-weight: 400; text-transform: none; letter-spacing: 0; }
+  input[type=text], textarea { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: inherit; }
+  input[type=text]:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+  button, .btn { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; text-decoration: none; display: inline-block; }
+  button:hover, .btn:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { color: #fff; filter: brightness(1.08); }
+  button.icon { padding: 4px 8px; }
+  button.danger:hover { color: #b00020; border-color: #b00020; }
+  .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .ph { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: #fcfafb; }
+  .thumb { aspect-ratio: 1; border-radius: 6px; background: #f1e6ea center / cover no-repeat; display: grid; place-items: center; color: var(--muted); font-size: 12px; cursor: pointer; position: relative; overflow: hidden; }
+  .thumb:hover::after { content: "Change photo"; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.4); color: #fff; font-weight: 600; }
+  .thumb.busy::after { content: "Uploading…"; position: absolute; inset: 0; display: grid; place-items: center; background: rgba(255,255,255,.8); color: var(--accent); }
+  .ph input[type=text] { margin-top: 6px; font-size: 13px; padding: 6px 8px; }
+  .ph .tools { display: flex; gap: 4px; margin-top: 6px; justify-content: space-between; }
+  .heart-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 170px)); gap: 12px; }
+  .block { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; background: #fff; }
+  .add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hint { font-size: 13px; color: var(--muted); margin: -4px 0 10px; }
+  .check { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; max-width: 520px; width: 92vw; }
+  dialog pre { white-space: pre-wrap; font-size: 12px; background: #f7f3f5; padding: 10px; border-radius: 8px; max-height: 50vh; overflow: auto; }
+  audio { width: 100%; margin: 6px 0 10px; }
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>💗 Website Editor</h1>
+    <span id="status">Loading…</span>
+    <a class="btn" href="/" target="_blank">Open website ↗</a>
+    <button class="primary" id="publish">Publish</button>
+  </div>
+  <nav id="nav"></nav>
+</header>
+<main id="app"></main>
+
+<dialog id="dlg"><h3 id="dlgTitle">Publishing</h3><pre id="dlgLog"></pre><form method="dialog"><button>Close</button></form></dialog>
+
+<script>
+const app = document.getElementById("app");
+const statusEl = document.getElementById("status");
+let C = null, saveTimer = null, base = "";
+async function textHash(t) {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(t)));
+  return BigInt("0x" + Array.from(d.slice(0, 6), (x) => x.toString(16).padStart(2, "0")).join("")).toString();
+}
+
+/* ---------- helpers ---------- */
+function h(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (k === "class") n.className = v;
+    else if (v !== undefined && v !== null && v !== false) n.setAttribute(k, v === true ? "" : v);
+  }
+  kids.flat().forEach((c) => c != null && n.append(c.nodeType ? c : document.createTextNode(c)));
+  return n;
+}
+function save() {
+  statusEl.textContent = "Saving…";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch("/api/save?v=2&base=" + base, { method: "POST", body: JSON.stringify(C) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      base = j.base;
+      statusEl.textContent = "All changes saved ✓";
+    } catch (e) { statusEl.textContent = "⚠ Could not save: " + e.message; }
+  }, 500);
+}
+// text input bound to obj[key]
+function text(label, obj, key, opts = {}) {
+  const input = opts.multi
+    ? h("textarea", { rows: opts.rows || 4, placeholder: opts.placeholder || "" })
+    : h("input", { type: "text", placeholder: opts.placeholder || "" });
+  input.value = opts.get ? opts.get(obj[key]) : (obj[key] ?? "");
+  input.addEventListener("input", () => { obj[key] = opts.set ? opts.set(input.value) : input.value; save(); });
+  return h("label", { class: "f" }, h("span", {}, label, opts.note ? h("small", {}, "  " + opts.note) : null), input);
+}
+// textarea where each line is one array item (blank lines kept)
+const linesOpt = { multi: true, rows: 8, get: (a) => (a || []).join("\n"), set: (v) => v.split("\n") };
+// textarea where blank lines separate paragraphs
+const parasOpt = { multi: true, rows: 10, get: (a) => (a || []).join("\n\n"), set: (v) => v.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean) };
+
+async function upload(file, kind = "photo") {
+  const r = await fetch(`/api/upload?kind=${kind}&name=${encodeURIComponent(file.name)}`, { method: "POST", body: file });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error);
+  return j.path;
+}
+function pickFiles({ accept = "image/*", multiple = false }, cb) {
+  const inp = h("input", { type: "file", accept, multiple });
+  inp.addEventListener("change", () => inp.files.length && cb(Array.from(inp.files)));
+  document.body.append(inp); inp.click(); setTimeout(() => inp.remove(), 60000);
+}
+function thumb(src) {
+  const t = h("div", { class: "thumb", title: "Click to choose a photo" }, "No photo yet");
+  const img = new Image();
+  img.onload = () => { t.style.backgroundImage = `url("/${src}?t=${Date.now()}")`; t.firstChild && (t.firstChild.textContent = ""); };
+  if (src) img.src = "/" + src + "?t=" + Date.now();
+  return t;
+}
+// a photo picker bound to obj[key]
+function photoField(obj, key, onChange) {
+  const t = thumb(obj[key]);
+  t.addEventListener("click", () => pickFiles({}, async ([f]) => {
+    t.classList.add("busy");
+    try { obj[key] = await upload(f); save(); onChange ? onChange() : t.replaceWith(photoField(obj, key)); }
+    catch (e) { alert("Upload failed: " + e.message); t.classList.remove("busy"); }
+  }));
+  return t;
+}
+function previewBtn(q) { return h("a", { class: "btn", href: "/?preview=" + q, target: "_blank" }, "Preview ↗"); }
+function card(id, title, tag, preview, ...kids) {
+  return h("section", { class: "card", id }, h("div", { class: "card-head" }, h("h2", {}, title), tag ? h("span", { class: "tag" }, tag) : null, preview), ...kids);
+}
+
+/* ---------- sections ---------- */
+function lockCard() {
+  const L = C.lock;
+  const en = h("input", { type: "checkbox" }); en.checked = L.enabled !== false;
+  en.addEventListener("change", () => { L.enabled = en.checked; save(); });
+  return card("s-lock", "1. Secret code screen", "first screen", previewBtn("lock"),
+    h("label", { class: "check" }, en, "Show the secret code screen"),
+    h("div", { class: "row" },
+      text("Secret code", L, "code", { note: "exactly 4 digits", set: (v) => v.replace(/\D/g, "").slice(0, 4) }),
+      text("Title", L, "title")),
+    h("div", { class: "row" }, text("Hint under the boxes", L, "hint"), text("Wrong code message", L, "wrong")),
+    h("label", { class: "f" }, h("span", {}, "Heart photos", h("small", {}, "  one or two. Remove the second one to show a single heart"))),
+    h("div", { class: "heart-photos" }, heartPhoto(L, "photoLeft", "Heart 1"), heartPhoto(L, "photoRight", "Heart 2 (optional)")));
+}
+function heartPhoto(L, key, label) {
+  const wrap = h("div", { class: "ph" });
+  const draw = () => wrap.replaceChildren(photoField(L, key, draw),
+    h("div", { class: "tools", style: "align-items:center" }, h("span", { class: "hint", style: "margin:0" }, label),
+      L[key] ? h("button", { class: "icon danger", title: "Remove this photo", onclick: () => { L[key] = ""; save(); draw(); } }, "✕ Remove") : null));
+  draw();
+  return wrap;
+}
+function giftCard() {
+  return card("s-gift", "2. Gift screen", null, previewBtn("gift"),
+    h("div", { class: "row" }, text("Text under the gift", C.gift, "title"), text("Small hint", C.gift, "hint")));
+}
+function introCard() {
+  return card("s-intro", "3. After the flowers", null, previewBtn("story"),
+    h("div", { class: "row" }, text("Big title", C.intro, "title"), text("Line under it", C.intro, "subtitle")));
+}
+
+const TYPES = { polaroids: "Polaroid photos", poem: "Poem", quote: "Big quote", letter: "Letter" };
+function blockEl(b, i) {
+  const list = C.story;
+  const move = (d) => { const j = i + d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; save(); renderStory(); };
+  const head = h("div", { class: "card-head" },
+    h("h2", {}, `Block ${i + 1}`), h("span", { class: "tag" }, TYPES[b.type] || b.type),
+    previewBtn("story&block=" + i),
+    h("button", { class: "icon", title: "Move up", onclick: () => move(-1) }, "↑"),
+    h("button", { class: "icon", title: "Move down", onclick: () => move(1) }, "↓"),
+    h("button", { class: "icon danger", title: "Delete block", onclick: () => { if (confirm("Delete this block?")) { list.splice(i, 1); save(); renderStory(); } } }, "✕"));
+  const box = h("div", { class: "block" }, head);
+
+  if (b.type === "polaroids") {
+    b.photos = b.photos || [];
+    const grid = h("div", { class: "photos" });
+    const draw = () => {
+      grid.replaceChildren(...b.photos.map((p, k) => {
+        const mv = (d) => { const j = k + d; if (j < 0 || j >= b.photos.length) return; [b.photos[k], b.photos[j]] = [b.photos[j], b.photos[k]]; save(); draw(); };
+        const cap = h("input", { type: "text", placeholder: "caption" }); cap.value = p.caption || "";
+        cap.addEventListener("input", () => { p.caption = cap.value; save(); });
+        return h("div", { class: "ph" }, photoField(p, "src", draw), cap,
+          h("div", { class: "tools" },
+            h("button", { class: "icon", title: "Move left", onclick: () => mv(-1) }, "←"),
+            h("button", { class: "icon", title: "Move right", onclick: () => mv(1) }, "→"),
+            h("button", { class: "icon danger", title: "Remove", onclick: () => { b.photos.splice(k, 1); save(); draw(); } }, "✕")));
+      }));
+    };
+    draw();
+    const add = h("button", { onclick: () => pickFiles({ multiple: true }, async (files) => {
+      add.textContent = `Uploading ${files.length}…`; add.disabled = true;
+      for (const f of files) { try { b.photos.push({ src: await upload(f), caption: "" }); draw(); } catch (e) { alert("Upload failed: " + e.message); } }
+      save(); add.textContent = "+ Add photos"; add.disabled = false;
+    }) }, "+ Add photos");
+    box.append(text("Title above the photos", b, "title"), grid, h("div", { style: "margin-top:10px" }, add),
+      h("p", { class: "hint", style: "margin-top:8px" }, "Click a photo to replace it. You can pick several at once with “Add photos”. iPhone HEIC photos are converted automatically."));
+  } else if (b.type === "poem") {
+    box.append(text("Poem title", b, "title"), text("Poem", b, "lines", { ...linesOpt, note: "one line per line, leave an empty line between stanzas" }), text("Signed (optional)", b, "author"));
+  } else if (b.type === "quote") {
+    box.append(text("Quote", b, "text", { multi: true, rows: 3 }));
+  } else if (b.type === "letter") {
+    box.append(text("Greeting", b, "greeting"), text("Letter", b, "paragraphs", { ...parasOpt, note: "leave an empty line between paragraphs" }),
+      h("div", { class: "row" }, text("Sign-off", b, "signoff"), text("Your name", b, "signature")));
+  }
+  return box;
+}
+let storyHost;
+function renderStory() {
+  storyHost.replaceChildren(...C.story.map(blockEl));
+}
+function storyCard() {
+  C.story = C.story || [];
+  storyHost = h("div");
+  renderStory();
+  const add = (type) => {
+    const blank = { polaroids: { type, title: "", photos: [] }, poem: { type, title: "", lines: [], author: "" }, quote: { type, text: "" },
+      letter: { type, greeting: "", paragraphs: [], signoff: "", signature: "" } }[type];
+    C.story.push(blank); save(); renderStory();
+    storyHost.lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+  return card("s-story", "4. The story", "she scrolls through these in order", null,
+    h("p", { class: "hint" }, "Use ↑ ↓ to reorder blocks. Add as many poems or photo walls as you like."),
+    storyHost,
+    h("div", { class: "add-row" }, ...Object.entries(TYPES).map(([t, n]) => h("button", { onclick: () => add(t) }, "+ " + n))));
+}
+function finaleCard() {
+  return card("s-finale", "5. Ending", null, previewBtn("finale"),
+    h("div", { class: "row" }, text("Big title", C.finale, "title"), text("Line under it", C.finale, "subtitle")),
+    text("Replay button", C.finale, "replay"));
+}
+function musicCard() {
+  const M = C.music;
+  const player = h("audio", { controls: true, preload: "none" });
+  const info = h("p", { class: "hint" });
+  const refresh = () => {
+    fetch("/" + M.src, { method: "HEAD" }).then((r) => {
+      if (r.ok) { player.src = "/" + M.src + "?t=" + Date.now(); player.hidden = false; info.textContent = "Current song: " + M.src; }
+      else { player.hidden = true; info.textContent = "No song chosen yet, so a soft music-box melody plays instead."; }
+    });
+  };
+  refresh();
+  const btn = h("button", { onclick: () => pickFiles({ accept: "audio/*,.mp3,.m4a" }, async ([f]) => {
+    btn.textContent = "Uploading…"; btn.disabled = true;
+    try { M.src = await upload(f, "music"); save(); refresh(); } catch (e) { alert("Upload failed: " + e.message); }
+    btn.textContent = "Choose song file"; btn.disabled = false;
+  }) }, "Choose song file");
+  const vol = h("input", { type: "range", min: 0, max: 1, step: 0.05 }); vol.value = M.volume ?? 0.7;
+  vol.addEventListener("input", () => { M.volume = +vol.value; save(); });
+  return card("s-music", "6. Music", null, null, info, player, btn,
+    h("label", { class: "f", style: "margin-top:12px" }, h("span", {}, "Volume"), vol));
+}
+function pageCard() {
+  return card("s-page", "Browser tab title", null, null, text("Title shown on the tab", C, "pageTitle"));
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  const src = await (await fetch("/content.js?t=" + Date.now())).text();
+  base = await textHash(src);
+  C = new Function("window", src + "\n;return window.LOVE;")({});
+  ["lock", "gift", "intro", "finale", "music"].forEach((k) => (C[k] = C[k] || {}));
+  app.replaceChildren(lockCard(), giftCard(), introCard(), storyCard(), finaleCard(), musicCard(), pageCard());
+  document.getElementById("nav").replaceChildren(...[["s-lock", "Code"], ["s-gift", "Gift"], ["s-intro", "Intro"], ["s-story", "Story"], ["s-finale", "Ending"], ["s-music", "Music"]]
+    .map(([id, n]) => h("a", { href: "#" + id }, n)));
+  statusEl.textContent = "All changes saved ✓";
+}
+boot().catch((e) => { statusEl.textContent = "⚠ Could not load content.js: " + e.message; });
+
+document.getElementById("publish").addEventListener("click", async (e) => {
+  const b = e.currentTarget; b.disabled = true; b.textContent = "Publishing…";
+  try {
+    const r = await (await fetch("/api/publish", { method: "POST" })).json();
+    document.getElementById("dlgTitle").textContent = r.ok ? "Done ✓" : "Something went wrong";
+    document.getElementById("dlgLog").textContent = r.log || r.error;
+  } catch (err) { document.getElementById("dlgLog").textContent = String(err); }
+  document.getElementById("dlg").showModal();
+  b.disabled = false; b.textContent = "Publish";
+});
+</script>
+</body>
+</html>
